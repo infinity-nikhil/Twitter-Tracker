@@ -21,6 +21,7 @@ if (!API_KEY) {
   throw new Error('Set TWITTERAPI_KEY in your environment before running this.');
 }
 
+//It simply helps you to add which account you wanna keep eye on just give the details in the json format 
 async function addRule(): Promise<string> {
   const res = await fetch('https://api.twitterapi.io/oapi/tweet_filter/add_rule', {
     method: 'POST',
@@ -37,6 +38,8 @@ async function addRule(): Promise<string> {
   return data.rule_id;
 }
 
+//For active and update connection we have only one endpoint by calling this and passing the same value
+//we can make our connection active or update it
 async function activateRule(ruleId: string): Promise<void> {
   const res = await fetch('https://api.twitterapi.io/oapi/tweet_filter/update_rule', {
     method: 'POST',
@@ -54,25 +57,34 @@ async function activateRule(ruleId: string): Promise<void> {
   console.log('Rule activated.');
 }
 
+
+//For this one there is no direct link btwnn activeRule and this one, all the magic happens cause of API
+//It's just when you send the connection request the api is the key and you are authorized to do the activity 
 function connectStream(): void {
+    //We make an instance 
   const ws = new WebSocket('wss://ws.twitterapi.io/twitter/tweet/websocket', {
     headers: { 'x-api-key': API_KEY },
   });
 
+  //we open a connection 
   ws.on('open', () => console.log('WebSocket connected.'));
 
+  //we subscribe for an event 
   ws.on('message', (raw) => {
     const event = JSON.parse(raw.toString());
 
+    //If the event is connected then this 
     switch (event.event_type) {
       case 'connected':
         console.log('Handshake confirmed — stream is live.');
         break;
 
+        //if the ping then this 
       case 'ping':
         // heartbeat, nothing to do
         break;
 
+        //if they tweeted then this 
       case 'tweet':
         for (const tweet of event.tweets ?? []) {
           console.log(
