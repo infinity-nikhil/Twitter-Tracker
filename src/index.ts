@@ -60,39 +60,27 @@ async function activateRule(ruleId: string): Promise<void> {
 
 //For this one there is no direct link btwnn activeRule and this one, all the magic happens cause of API
 //It's just when you send the connection request the api is the key and you are authorized to do the activity 
-function connectStream(): void {
-    //We make an instance 
+function connectStream(onTweet: (text: string) => void): void {
   const ws = new WebSocket('wss://ws.twitterapi.io/twitter/tweet/websocket', {
     headers: { 'x-api-key': API_KEY },
   });
 
-  //we open a connection 
   ws.on('open', () => console.log('WebSocket connected.'));
 
-  //we subscribe for an event 
   ws.on('message', (raw) => {
     const event = JSON.parse(raw.toString());
 
-    //If the event is connected then this 
     switch (event.event_type) {
       case 'connected':
         console.log('Handshake confirmed — stream is live.');
         break;
-
-        //if the ping then this 
       case 'ping':
-        // heartbeat, nothing to do
         break;
-
-        //if they tweeted then this 
       case 'tweet':
         for (const tweet of event.tweets ?? []) {
-          console.log(
-            `🐦 @${tweet.author?.username ?? TARGET_HANDLE}: ${tweet.text}`
-          );
+          onTweet(`🐦 @${tweet.author?.username ?? TARGET_HANDLE}: ${tweet.text}`);
         }
         break;
-
       default:
         console.log('Unhandled event:', event);
     }
@@ -102,13 +90,14 @@ function connectStream(): void {
   ws.on('error', (err) => console.error('WebSocket error:', err));
 }
 
-async function main() {
+// This is the one thing bot.ts will import.
+export async function startWatching(onTweet: (text: string) => void) {
   const ruleId = await addRule();
   await activateRule(ruleId);
-  connectStream();
+  connectStream(onTweet);
 }
 
-main().catch((err) => {
-  console.error('Fatal error:', err);
-  process.exit(1);
-});
+// main().catch((err) => {
+//   console.error('Fatal error:', err);
+//   process.exit(1);
+// });
